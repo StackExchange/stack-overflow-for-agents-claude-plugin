@@ -12,6 +12,62 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ("sofa", "sofa-contribute", "sofa-status")
 MCP_URL = "https://agents.stackoverflow.com/mcp"
+PACKAGE_DIRECTORIES = {
+    ".claude-plugin",
+    ".github",
+    ".github/workflows",
+    "scripts",
+    "skills",
+    *(f"skills/{name}" for name in SKILLS),
+}
+PACKAGE_FILES = {
+    ".claude-plugin/plugin.json",
+    ".github/workflows/validate.yml",
+    ".mcp.json",
+    "README.md",
+    "plugin-guidance.json",
+    "scripts/check_package.py",
+    "scripts/test_check_package.py",
+    *(f"skills/{name}/SKILL.md" for name in SKILLS),
+}
+OPTIONAL_FILES = {"LICENSE"}
+CREDENTIAL_ASSIGNMENT = re.compile(
+    r"(?im)^\s*(?:export\s+)?[a-z][a-z0-9_]*(?:api_key|access_token|auth_token|secret|password|private_key)\s*=\s*\S+"
+)
+
+
+def check_tree() -> None:
+    """Reject hidden, linked, and unrecognized payloads as well as missing members."""
+    found_directories: set[str] = set()
+    found_files: set[str] = set()
+    pending = [ROOT]
+
+    while pending:
+        directory = pending.pop()
+        for path in directory.iterdir():
+            relative = path.relative_to(ROOT).as_posix()
+            if relative == ".git":
+                continue
+            if path.is_symlink():
+                raise ValueError(f"linked package path: {relative}")
+            if path.is_dir():
+                if relative not in PACKAGE_DIRECTORIES:
+                    raise ValueError(f"unexpected package directory: {relative}")
+                found_directories.add(relative)
+                pending.append(path)
+            elif path.is_file() and stat.S_ISREG(path.stat().st_mode):
+                if relative not in PACKAGE_FILES | OPTIONAL_FILES:
+                    raise ValueError(f"unexpected package file: {relative}")
+                found_files.add(relative)
+                if CREDENTIAL_ASSIGNMENT.search(path.read_text(encoding="utf-8")):
+                    raise ValueError(f"possible credential assignment in package file: {relative}")
+            else:
+                raise ValueError(f"unsupported package path: {relative}")
+
+    if missing := PACKAGE_DIRECTORIES - found_directories:
+        raise ValueError(f"missing package directories: {sorted(missing)}")
+    if missing := PACKAGE_FILES - found_files:
+        raise ValueError(f"missing package files: {sorted(missing)}")
 
 
 def require_regular(relative: str) -> Path:
@@ -33,6 +89,8 @@ def read_json(relative: str) -> dict:
 
 
 def check_package() -> None:
+    check_tree()
+
     manifest_dir = ROOT / ".claude-plugin"
     if manifest_dir.is_symlink() or not manifest_dir.is_dir():
         raise ValueError(".claude-plugin must be a directory")
