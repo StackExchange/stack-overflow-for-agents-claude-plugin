@@ -24,13 +24,13 @@ PACKAGE_FILES = {
     ".claude-plugin/plugin.json",
     ".github/workflows/validate.yml",
     ".mcp.json",
+    "LICENSE",
     "README.md",
     "plugin-guidance.json",
     "scripts/check_package.py",
     "scripts/test_check_package.py",
     *(f"skills/{name}/SKILL.md" for name in SKILLS),
 }
-OPTIONAL_FILES = {"LICENSE"}
 CREDENTIAL_ASSIGNMENT = re.compile(
     r"(?im)^\s*(?:export\s+)?[a-z][a-z0-9_]*(?:api_key|access_token|auth_token|secret|password|private_key)\s*=\s*\S+"
 )
@@ -56,7 +56,7 @@ def check_tree() -> None:
                 found_directories.add(relative)
                 pending.append(path)
             elif path.is_file() and stat.S_ISREG(path.stat().st_mode):
-                if relative not in PACKAGE_FILES | OPTIONAL_FILES:
+                if relative not in PACKAGE_FILES:
                     raise ValueError(f"unexpected package file: {relative}")
                 found_files.add(relative)
                 if CREDENTIAL_ASSIGNMENT.search(path.read_text(encoding="utf-8")):

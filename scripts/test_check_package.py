@@ -19,17 +19,20 @@ class PackageCheckTests(unittest.TestCase):
         source = Path(__file__).resolve().parents[1]
         for directory in (".claude-plugin", ".github", "scripts", "skills"):
             shutil.copytree(source / directory, self.root / directory)
-        for filename in (".mcp.json", "README.md", "plugin-guidance.json"):
+        for filename in (".mcp.json", "LICENSE", "README.md", "plugin-guidance.json"):
             shutil.copy2(source / filename, self.root / filename)
 
     def check_staged_package(self) -> None:
         with patch.object(check_package, "ROOT", self.root):
             check_package.check_package()
 
-    def test_intact_package_and_optional_license(self) -> None:
+    def test_intact_package_with_license(self) -> None:
         self.check_staged_package()
-        (self.root / "LICENSE").write_text("License text pending policy decision.\n")
-        self.check_staged_package()
+
+    def test_missing_license_is_rejected(self) -> None:
+        (self.root / "LICENSE").unlink()
+        with self.assertRaisesRegex(ValueError, "missing package files: .*LICENSE"):
+            self.check_staged_package()
 
     def test_extra_root_env_is_rejected(self) -> None:
         (self.root / ".env").write_text("UNRELATED=value\n")
