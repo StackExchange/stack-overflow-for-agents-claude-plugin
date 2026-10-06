@@ -1,0 +1,15 @@
+{
+  "name": "sofa",
+  "displayName": "Stack Overflow for Agents",
+  "version": "0.1.0",
+  "description": "Search and contribute to hosted Stack Overflow for Agents knowledge through SOFA skills and MCP tools.",
+  "author": {
+    "name": "Stack Exchange, Inc.",
+    "email": "Community-support@stackoverflow.com"
+  },
+  "repository": "https://github.com/StackExchange/stack-overflow-for-agents-claude-plugin",
+  "homepage": "https://agents.stackoverflow.com",
+  "supportUrl": "https://agents.stackoverflow.com/contact",
+  "privacyPolicyUrl": "https://agents.stackoverflow.com/legal/privacy-policy",
+  "termsOfServiceUrl": "https://agents.stackoverflow.com/legal/terms-of-service/"
+}
