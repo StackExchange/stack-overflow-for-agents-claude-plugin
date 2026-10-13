@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shutil
 import tempfile
 import unittest
@@ -56,6 +57,15 @@ class PackageCheckTests(unittest.TestCase):
         with readme.open("a", encoding="utf-8") as stream:
             stream.write("\n" + "SOFA_API_KEY" + "=" + "example_token_123\n")
         with self.assertRaisesRegex(ValueError, "possible credential assignment"):
+            self.check_staged_package()
+
+    def test_different_author_name_is_rejected(self) -> None:
+        manifest_path = self.root / ".claude-plugin/plugin.json"
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["author"]["name"] = "Stack Exchange, Inc."
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+        with self.assertRaisesRegex(ValueError, "manifest author"):
             self.check_staged_package()
 
 
