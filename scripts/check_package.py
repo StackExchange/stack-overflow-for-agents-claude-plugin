@@ -122,7 +122,7 @@ def check_package() -> None:
         raise ValueError("manifest version must be major.minor.patch")
     if not isinstance(manifest.get("description"), str) or not manifest["description"].strip():
         raise ValueError("manifest description is required")
-    if manifest.get("author", {}).get("name") != "Stack Exchange, Inc.":
+    if manifest.get("author", {}).get("name") != "Stack Overflow":
         raise ValueError("manifest author is missing or incorrect")
     for key in ("repository", "homepage", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"):
         value = manifest.get(key)
