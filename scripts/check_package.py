@@ -3,15 +3,22 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import re
 import stat
+import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ("sofa", "sofa-contribute", "sofa-status")
 MCP_URL = "https://agents.stackoverflow.com/mcp"
+VERSIONED_CONTENT = (
+    ".mcp.json",
+    "plugin-guidance.json",
+    *(f"skills/{name}/SKILL.md" for name in SKILLS),
+)
 PACKAGE_DIRECTORIES = {
     ".claude-plugin",
     ".github",
@@ -149,9 +156,54 @@ def check_package() -> None:
         raise ValueError("README needs at least 40 non-code words")
 
 
+def version_parts(value: object) -> tuple[int, int, int]:
+    if not isinstance(value, str) or not re.fullmatch(r"\d+\.\d+\.\d+", value):
+        raise ValueError("base or proposed manifest version must be major.minor.patch")
+    major, minor, patch = value.split(".")
+    return int(major), int(minor), int(patch)
+
+
+def check_version_against_base(base_sha: str) -> None:
+    """Require a higher reviewer-chosen version when release content changes."""
+    if not re.fullmatch(r"[0-9a-f]{40}", base_sha):
+        raise ValueError("base SHA must be a full Git commit ID")
+
+    baseline = subprocess.run(
+        ["git", "show", f"{base_sha}:.claude-plugin/plugin.json"],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if baseline.returncode != 0:
+        raise ValueError("cannot read the base plugin manifest")
+
+    base_version = version_parts(json.loads(baseline.stdout).get("version"))
+    proposed_version = version_parts(read_json(".claude-plugin/plugin.json").get("version"))
+    if proposed_version < base_version:
+        raise ValueError("manifest version must not decrease from public main")
+
+    difference = subprocess.run(
+        ["git", "diff", "--quiet", base_sha, "--", *VERSIONED_CONTENT],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if difference.returncode not in (0, 1):
+        raise ValueError("cannot compare release content with public main")
+    if difference.returncode == 1 and proposed_version == base_version:
+        raise ValueError("changed plugin guidance or behavior needs a higher manifest version")
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base-sha", help="public main commit to compare for PR version policy")
+    args = parser.parse_args()
     try:
         check_package()
+        if args.base_sha is not None:
+            check_version_against_base(args.base_sha)
     except (OSError, UnicodeError, ValueError, json.JSONDecodeError) as error:
         sys.stderr.write(f"Package validation failed: {error}\n")
         raise SystemExit(1) from error

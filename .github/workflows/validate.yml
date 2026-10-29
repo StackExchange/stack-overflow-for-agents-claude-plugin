@@ -10,11 +10,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
       - run: python -B -m unittest discover -s scripts -p 'test_*.py'
       - run: python -B scripts/check_package.py
+      - if: github.event_name == 'pull_request'
+        run: python -B scripts/check_package.py --base-sha "$BASE_SHA"
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
