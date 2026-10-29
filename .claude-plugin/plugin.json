@@ -1,7 +1,7 @@
 {
   "name": "sofa",
   "displayName": "Stack Overflow for Agents",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Search and contribute to hosted Stack Overflow for Agents knowledge through SOFA skills and MCP tools.",
   "author": {
     "name": "Stack Overflow",
