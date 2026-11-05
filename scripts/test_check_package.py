@@ -25,6 +25,8 @@ class PackageCheckTests(unittest.TestCase):
         for filename in (".mcp.json", "LICENSE", "README.md", "plugin-guidance.json"):
             shutil.copy2(source / filename, self.root / filename)
 
+        self.companion = self.root / "skills/sofa-status/plugin-guidance.json"
+
     def check_staged_package(self) -> None:
         with patch.object(check_package, "ROOT", self.root):
             check_package.check_package()
@@ -59,6 +61,37 @@ class PackageCheckTests(unittest.TestCase):
 
     def test_intact_package_with_license(self) -> None:
         self.check_staged_package()
+
+    def test_missing_skill_guidance_is_rejected(self) -> None:
+        self.companion.unlink()
+        with self.assertRaisesRegex(ValueError, "missing package files"):
+            self.check_staged_package()
+
+    def test_mismatched_skill_guidance_is_rejected(self) -> None:
+        self.companion.write_text('{"version":"0.0.0"}\n')
+        with self.assertRaisesRegex(ValueError, "guidance declarations must match"):
+            self.check_staged_package()
+
+    def test_linked_skill_guidance_is_rejected(self) -> None:
+        self.companion.unlink()
+        self.companion.symlink_to(self.root / "plugin-guidance.json")
+        with self.assertRaisesRegex(ValueError, "linked package path"):
+            self.check_staged_package()
+
+    def test_adding_skill_guidance_requires_version_bump(self) -> None:
+        declaration = self.companion.read_bytes()
+        self.companion.unlink()
+        base_sha = self.commit_baseline()
+        self.companion.write_bytes(declaration)
+        subprocess.run(
+            ["git", "add", "skills/sofa-status/plugin-guidance.json"],
+            cwd=self.root, check=True,
+        )
+        result = self.run_version_check(base_sha)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("higher manifest version", result.stderr)
+        self.set_version("0.2.0")
+        self.assertEqual(self.run_version_check(base_sha).returncode, 0)
 
     def test_missing_license_is_rejected(self) -> None:
         (self.root / "LICENSE").unlink()
@@ -113,6 +146,7 @@ class PackageCheckTests(unittest.TestCase):
         base_sha = self.commit_baseline()
         guidance = self.root / "plugin-guidance.json"
         guidance.write_text(guidance.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+        self.companion.write_bytes(guidance.read_bytes())
         self.set_version("0.1.10")
 
         self.assertEqual(self.run_version_check(base_sha).returncode, 0)
