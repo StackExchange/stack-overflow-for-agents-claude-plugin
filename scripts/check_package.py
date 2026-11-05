@@ -14,9 +14,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ("sofa", "sofa-contribute", "sofa-status")
 MCP_URL = "https://agents.stackoverflow.com/mcp"
+SKILL_GUIDANCE = "skills/sofa-status/plugin-guidance.json"
 VERSIONED_CONTENT = (
     ".mcp.json",
     "plugin-guidance.json",
+    SKILL_GUIDANCE,
     *(f"skills/{name}/SKILL.md" for name in SKILLS),
 )
 PACKAGE_DIRECTORIES = {
@@ -34,6 +36,7 @@ PACKAGE_FILES = {
     "LICENSE",
     "README.md",
     "plugin-guidance.json",
+    SKILL_GUIDANCE,
     "scripts/check_package.py",
     "scripts/test_check_package.py",
     *(f"skills/{name}/SKILL.md" for name in SKILLS),
@@ -113,8 +116,9 @@ def check_package() -> None:
         skill_dir = skills_dir / name
         if skill_dir.is_symlink() or not skill_dir.is_dir():
             raise ValueError(f"skill must be a directory: {name}")
-        if {path.name for path in skill_dir.iterdir()} != {"SKILL.md"}:
-            raise ValueError(f"skill must contain only SKILL.md: {name}")
+        expected = {"SKILL.md", "plugin-guidance.json"} if name == "sofa-status" else {"SKILL.md"}
+        if {path.name for path in skill_dir.iterdir()} != expected:
+            raise ValueError(f"unexpected skill contents: {name}")
         if not require_regular(f"skills/{name}/SKILL.md").read_text(encoding="utf-8").strip():
             raise ValueError(f"skill is empty: {name}")
 
@@ -142,6 +146,9 @@ def check_package() -> None:
     if mcp != {"mcpServers": {"sofa": {"type": "http", "url": MCP_URL}}}:
         raise ValueError("MCP config must contain only the fixed hosted SOFA server")
 
+    root_guidance = require_regular("plugin-guidance.json").read_bytes()
+    if require_regular(SKILL_GUIDANCE).read_bytes() != root_guidance:
+        raise ValueError("root and skill guidance declarations must match byte-for-byte")
     guidance = read_json("plugin-guidance.json")
     if guidance.get("surface") != "public_directory":
         raise ValueError("plugin guidance must target the public directory surface")
