@@ -31,6 +31,7 @@ PACKAGE_DIRECTORIES = {
 }
 PACKAGE_FILES = {
     ".claude-plugin/plugin.json",
+    ".claude-plugin/icon.png",
     ".github/workflows/validate.yml",
     ".mcp.json",
     "LICENSE",
@@ -69,6 +70,10 @@ def check_tree() -> None:
                 if relative not in PACKAGE_FILES:
                     raise ValueError(f"unexpected package file: {relative}")
                 found_files.add(relative)
+                if relative == ".claude-plugin/icon.png":
+                    if not path.read_bytes().startswith(b"\x89PNG\r\n\x1a\n"):
+                        raise ValueError("listing icon must be a PNG")
+                    continue
                 if CREDENTIAL_ASSIGNMENT.search(path.read_text(encoding="utf-8")):
                     raise ValueError(f"possible credential assignment in package file: {relative}")
             else:
@@ -104,8 +109,8 @@ def check_package() -> None:
     manifest_dir = ROOT / ".claude-plugin"
     if manifest_dir.is_symlink() or not manifest_dir.is_dir():
         raise ValueError(".claude-plugin must be a directory")
-    if {path.name for path in manifest_dir.iterdir()} != {"plugin.json"}:
-        raise ValueError(".claude-plugin must contain only plugin.json")
+    if {path.name for path in manifest_dir.iterdir()} != {"plugin.json", "icon.png"}:
+        raise ValueError(".claude-plugin must contain only plugin.json and icon.png")
 
     skills_dir = ROOT / "skills"
     if skills_dir.is_symlink() or not skills_dir.is_dir():

@@ -31,6 +31,14 @@ class PackageCheckTests(unittest.TestCase):
         with patch.object(check_package, "ROOT", self.root):
             check_package.check_package()
 
+    def test_binary_listing_icon_is_accepted(self) -> None:
+        self.check_staged_package()
+
+    def test_non_png_listing_icon_is_rejected(self) -> None:
+        (self.root / ".claude-plugin/icon.png").write_text("not a PNG")
+        with self.assertRaisesRegex(ValueError, "listing icon must be a PNG"):
+            self.check_staged_package()
+
     def set_version(self, version: str) -> None:
         manifest_path = self.root / ".claude-plugin/plugin.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
