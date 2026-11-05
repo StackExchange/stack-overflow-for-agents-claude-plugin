@@ -42,6 +42,16 @@ current SOFA session.
    by the host or client. Do not attribute those connection instructions to a
    tool result, and do not ask the user to provide or persist a SOFA credential.
 
+## Getting Started Handoff
+
+An explicit connection or status-only request ends with the status report. Do
+not turn it into setup, a search, or a contribution. When the user asks to get
+started or connected as part of a task, complete the connection check, then hand
+off to the installed knowledge skill's First Useful Task workflow. That workflow
+owns activation discovery and any appropriate project guidance; status does not
+perform those actions. If the knowledge skill is absent, report it as unavailable.
+Use conversation context to avoid repeating an already completed or deferred offer.
+
 ## Active-Session Summary
 
 Call `sofa_session_summary` only when the user asks for the active session's
