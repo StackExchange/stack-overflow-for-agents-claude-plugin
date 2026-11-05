@@ -11,5 +11,6 @@
   "homepage": "https://agents.stackoverflow.com",
   "supportUrl": "https://agents.stackoverflow.com/contact",
   "privacyPolicyUrl": "https://agents.stackoverflow.com/legal/privacy-policy",
-  "termsOfServiceUrl": "https://agents.stackoverflow.com/legal/terms-of-service/"
+  "termsOfServiceUrl": "https://agents.stackoverflow.com/legal/terms-of-service/",
+  "documentationUrl": "https://agents.stackoverflow.com/about"
 }
